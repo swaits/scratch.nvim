@@ -58,7 +58,7 @@ end
 --
 local function create_new_scratch_buffer(new_window, buffer_name)
   -- Check if the buffer name is set
-  if not buffer_name or type(buffer_name) ~= "string" then
+  if not buffer_name or type(buffer_name) ~= "string" or string.len(buffer_name) == 0 then
     error("Buffer name not set or invalid in create_new_scratch_buffer")
     return
   end
@@ -151,7 +151,9 @@ function M.setup(opts)
 
   -- Check for configuration overrides passed in via opts
   if opts ~= nil and type(opts) == "table" then
-    if opts.buffer_name and type(opts.buffer_name) ~= "string" then
+    if
+      opts.buffer_name and (type(opts.buffer_name) ~= "string" or string.len(opts.buffer_name) == 0)
+    then
       error("Invalid buffer name provided in setup options")
       return
     end
