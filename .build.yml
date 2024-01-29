@@ -1,0 +1,11 @@
+image: alpine/edge
+secrets:
+  - 88cce185-d2ec-4573-9546-e33f36f79bbf
+sources:
+  - git+ssh://git@git.sr.ht/~swaits/scratch.nvim
+tasks:
+  - mirror-to-github: |
+      cd ~/scratch.nvim
+      ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+      git remote add github git@github.com:swaits/scratch.nvim.git
+      git push --mirror github
