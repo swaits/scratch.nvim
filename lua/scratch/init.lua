@@ -73,6 +73,64 @@ local function create_new_scratch_buffer(new_window, buffer_name)
   vim.api.nvim_buf_set_option(buf, "buflisted", true) -- include the buffer in the :bnext list
   vim.api.nvim_buf_set_option(buf, "buftype", "nofile") -- nofile means the buffer isn't backed by a file and we control its name
   vim.api.nvim_buf_set_option(buf, "swapfile", false) -- never swapfiles
+
+  -- Emacs-style Lua eval: evaluate a range and insert the result below it
+  vim.api.nvim_buf_create_user_command(
+    buf,
+    "Eval",
+    M.eval,
+    { range = true, desc = "Evaluate Lua range and insert result below" }
+  )
+end
+
+--- Evaluate lines as Lua and insert the inspected result below them.
+--
+-- The lines are first loaded with an implicit `return` prepended, so a lone
+-- expression evaluates to its value. If that fails to parse, the lines are
+-- loaded as a plain chunk instead (add an explicit `return` for the value you
+-- want when the range contains statements such as `local x = ...`).
+-- Parse and runtime errors are reported with vim.notify and nothing is
+-- inserted.
+--
+-- @param line1 (number) 1-based first line of the range.
+-- @param line2 (number) 1-based last line of the range, inclusive.
+--
+local function eval_and_insert(line1, line2)
+  local buf = vim.api.nvim_get_current_buf()
+  local code = table.concat(vim.api.nvim_buf_get_lines(buf, line1 - 1, line2, false), "\n")
+
+  local chunk, err = load("return " .. code)
+  if not chunk then
+    chunk, err = load(code)
+  end
+  if not chunk then
+    vim.notify("Lua parse error: " .. err, vim.log.levels.ERROR)
+    return
+  end
+
+  local ok, result = pcall(chunk)
+  if not ok then
+    vim.notify("Lua exec error: " .. result, vim.log.levels.ERROR)
+    return
+  end
+
+  vim.api.nvim_buf_set_lines(buf, line2, line2, false, vim.split(vim.inspect(result), "\n"))
+end
+
+--- Evaluate a line range as Lua and insert the result below it.
+--
+-- This is the callback for the buffer-local `:Eval` command created in the
+-- scratch buffer (accepts a range), but it can be wired up anywhere, e.g. for
+-- a global command:
+--
+--   vim.api.nvim_create_user_command("Eval", require("scratch").eval, { range = true })
+--
+-- Usage:
+-- :Eval (with an optional visual or line range; defaults to the current line)
+--
+function M.eval(args)
+  args = args or {}
+  eval_and_insert(args.line1 or vim.fn.line("."), args.line2 or vim.fn.line("."))
 end
 
 --- Opens or splits a window based on the specified conditions.
