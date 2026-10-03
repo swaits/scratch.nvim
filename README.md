@@ -16,6 +16,8 @@ lua for Neovim.
 - Automatically switch to an existing scratch buffer if it's already open.
 - Configure the default name for the scratch buffer.
 - The scratch buffer acts as a temporary workspace and is not backed by a file.
+- Emacs-style Lua evaluation: `:Eval` evaluates a line range as Lua and inserts
+  the result below it.
 
 ## Installation
 
@@ -77,12 +79,28 @@ The plugin provides two commands:
 - `:Scratch` — Opens or switches to the scratch buffer in the current window.
 - `:ScratchSplit` — Opens or switches to the scratch buffer in a new split window.
 
+Inside the scratch buffer there is also a buffer-local command:
+
+- `:Eval` (with an optional range, e.g. visual selection) — Evaluates the lines
+  as Lua and inserts the inspected result below them. A lone expression is
+  evaluated for its value; for statements, add an explicit `return` for the
+  value you want (e.g. `local x = 2` followed by `return x`). Parse and runtime
+  errors are shown with `vim.notify`.
+
 ### Lua Functions
 
 You can also use the plugin's Lua functions directly:
 
 - `require('scratch').open()` — Equivalent to `:Scratch`.
 - `require('scratch').split()` — Equivalent to `:ScratchSplit`.
+- `require('scratch').eval({ line1 = 1, line2 = 5 })` — Evaluate a line range
+  and insert the result below it. Called with no arguments it uses the current
+  line. Wire it up as a global command if you want it outside the scratch
+  buffer:
+
+  ```lua
+  vim.api.nvim_create_user_command("Eval", require("scratch").eval, { range = true })
+  ```
 
 ## License
 
